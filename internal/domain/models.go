@@ -67,3 +67,16 @@ type GetDataResponse struct {
 	Timestamp string       `json:"timestamp"`
 	Value     float64     `json:"value"`
 }
+
+// nightscout config 
+type NightscoutConfig struct {
+	Token 			string
+	NightscoutURL 	string
+}
+// nightscout glucose entry 
+type NightscoutEntry struct {
+	Type      string  `json:"type"`      // always "sgv"
+	SGV       float64 `json:"sgv"`       // glucose value
+	Date      int64   `json:"date"`      // milliseconds since epoch
+	DateString string `json:"dateString"`// ISO8601 string
+}
