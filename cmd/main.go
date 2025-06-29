@@ -7,6 +7,7 @@ import (
 	"github.com/brkss/dextrace/internal/delivery"
 	"github.com/brkss/dextrace/internal/domain"
 	"github.com/brkss/dextrace/internal/infrastructure"
+	"github.com/brkss/dextrace/internal/scheduler"
 	"github.com/brkss/dextrace/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -39,6 +40,10 @@ func main() {
 
 	// Initialize handlers
 	handler := delivery.NewGlucoseHandler(sibionicUseCase, nighscoutUseCase, userID, user)
+
+	// Initialize and start scheduler
+	sched := scheduler.NewScheduler(sibionicUseCase, nighscoutUseCase, userID, user)
+	go sched.Start()
 
 	// Setup router
 	r := gin.Default()
