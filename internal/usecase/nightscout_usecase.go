@@ -25,3 +25,7 @@ func (uc *NightscoutUsecase)PushData(data []domain.GetDataResponse) (error) {
     }
     return nil
 }
+
+func (uc *NightscoutUsecase) GetLastRecord() (*domain.NightscoutEntry, error) {
+    return uc.nightscoutRepo.GetLastRecord()
+}

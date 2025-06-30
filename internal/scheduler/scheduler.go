@@ -27,22 +27,67 @@ func NewScheduler(sibionicUseCase *usecase.SibionicUseCase, nightscoutUseCase *u
 }
 
 func (s *Scheduler) Start() {
-	log.Println("Starting scheduler for push-to-nightscout (every 5 minutes)")
+	log.Println("Starting scheduler for push-to-nightscout (5 minutes after last Nightscout record)")
 	
 	// Run immediately on start
 	s.pushToNightscout()
 	
-	// Schedule to run every 5 minutes
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	
+	// Schedule next push based on last record
+	s.scheduleNextPush()
+}
+
+func (s *Scheduler) scheduleNextPush() {
 	for {
 		select {
-		case <-ticker.C:
-			s.pushToNightscout()
 		case <-s.stopChan:
 			log.Println("Scheduler stopped")
 			return
+		default:
+			// Get the last record from Nightscout
+			lastRecord, err := s.nightscoutUseCase.GetLastRecord()
+			if err != nil {
+				log.Printf("Error getting last record from Nightscout: %v", err)
+				// If we can't get the last record, wait 5 minutes and try again
+				time.Sleep(5 * time.Minute)
+				continue
+			}
+			
+			var nextPushTime time.Time
+			
+			if lastRecord == nil {
+				// No records found, push immediately
+				log.Println("No records found in Nightscout, pushing immediately")
+				s.pushToNightscout()
+				nextPushTime = time.Now().Add(5 * time.Minute)
+			} else {
+				// Calculate time based on last record
+				lastRecordTime := time.Unix(lastRecord.Date/1000, 0) // Convert milliseconds to seconds
+				nextPushTime = lastRecordTime.Add(5 * time.Minute)
+				
+				// If the calculated time is in the past, push immediately
+				if nextPushTime.Before(time.Now()) {
+					log.Printf("Last record is older than 5 minutes, pushing immediately")
+					s.pushToNightscout()
+					nextPushTime = time.Now().Add(5 * time.Minute)
+				} else {
+					log.Printf("Scheduling next push at %v (5 minutes after last record at %v)", 
+						nextPushTime.Format("2006-01-02 15:04:05"), 
+						lastRecordTime.Format("2006-01-02 15:04:05"))
+				}
+			}
+			
+			// Wait until next push time
+			waitDuration := time.Until(nextPushTime)
+			if waitDuration > 0 {
+				log.Printf("Waiting %v until next push", waitDuration)
+				select {
+				case <-time.After(waitDuration):
+					s.pushToNightscout()
+				case <-s.stopChan:
+					log.Println("Scheduler stopped")
+					return
+				}
+			}
 		}
 	}
 }

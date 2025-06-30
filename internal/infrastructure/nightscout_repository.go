@@ -117,3 +117,25 @@ func (r *NightscoutRepository) PushData(data []domain.GetDataResponse) error {
 
 	
 }
+
+func (r *NightscoutRepository) GetLastRecord() (*domain.NightscoutEntry, error) {
+	client := &http.Client{}
+	
+	resp, err := client.Get(r.nightscoutURL + "/api/v1/entries.json?count=1")
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var existingEntries []domain.NightscoutEntry
+	if err := json.NewDecoder(resp.Body).Decode(&existingEntries); err != nil {
+		return nil, err
+	}
+
+	if len(existingEntries) > 0 {
+		return &existingEntries[0], nil
+	}
+
+	return nil, nil // No records found
+}

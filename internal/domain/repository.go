@@ -12,4 +12,5 @@ type GlucoseRepository interface {
 
 type NightscoutRepository interface {
 	PushData(data []GetDataResponse) error;
+	GetLastRecord() (*NightscoutEntry, error);
 }
